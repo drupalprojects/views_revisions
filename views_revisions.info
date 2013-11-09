@@ -1,0 +1,5 @@
+name = Views Revisions
+description = Enable revisions on Views.
+core = 7.x
+package = Views
+

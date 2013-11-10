@@ -13,6 +13,11 @@ function views_revisions_schema() {
         'unsigned' => TRUE, 
         'not null' => TRUE,
       ),
+      'vid' => array(
+        'description' => 'The views id.', 
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
       'uid' => array(
         'description' => 'The acting user id.', 
         'type' => 'int',
@@ -24,10 +29,15 @@ function views_revisions_schema() {
         'unsigned' => TRUE, 
         'not null' => TRUE,
       ),
+      'log' => array(
+        'description' => 'The views revision log message.', 
+        'type' => 'text', 
+        'size' => 'medium'
+      ),
       'data' => array(
         'description' => 'The export data of the view when the revision was created.', 
         'type' => 'text', 
-        'size' => 'medium',
+        'size' => 'normal',
         'not null' => TRUE,
       ),
     ),

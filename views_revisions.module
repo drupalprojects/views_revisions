@@ -1,6 +1,18 @@
 <?php
 
 /**
+ * Implements hook_views_api().
+ */
+function views_revisions_views_api() {
+  return array(
+    'api' => 3, 
+    'path' => drupal_get_path('module', 'views_revisions'), 
+    'template path' => drupal_get_path('module', 'views_revisions'),
+  );
+}
+
+
+/**
  * Implements hook_permission().
  */
 function views_revisions_permission() {
@@ -18,13 +30,30 @@ function views_revisions_permission() {
 }
 
 /**
+ * Implements hook_menu().
+ */
+/*function views_revisions_menu() {
+  $items = array();
+  $items['admin/structure/views/revisions/%'] = array(
+    'type' => MENU_NORMAL_ITEM,
+    'title' => 'Revisions',
+    'page callback' => 'views_revisions_page',
+    'page arguments' => array(4),
+    'access arguments' => array('view views revisions')
+  );
+  return $items;
+}*/
+
+/**
  * Implements hook_form_alter().
  */
 function views_revisions_form_alter(&$form, &$form_state, $form_id) {
   if ($form_id == 'views_ui_edit_form') {
+    $form['#prefix'] .= '<div>' . l('Views Revisions', 'admin/structure/views/revisions/' . $form_state['view']->vid) . '</div>';
     $form['actions']['views_revisions_revision'] = array(
       '#type' => 'checkbox',
-      '#title' => t('Create new revision')
+      '#title' => t('Create new revision'),
+      '#default_value' => 1
     );
     $form['actions']['views_revisions_log'] = array(
       '#type' => 'textarea',
@@ -32,7 +61,7 @@ function views_revisions_form_alter(&$form, &$form_state, $form_id) {
       '#description' => t('Provide an explanation of the changes you are making. This will help other authors understand your motivations.'),
       '#rows' => 3
     );
-    $form['actions']['save']['#submit'][] = 'views_revisions_form_submit';
+    array_unshift($form['actions']['save']['#submit'], 'views_revisions_form_submit');
   }
 }
 
@@ -40,7 +69,28 @@ function views_revisions_form_alter(&$form, &$form_state, $form_id) {
  * Submission handler for the Views UI form.
  */
 function views_revisions_form_submit($form, &$form_state) {
+  global $user;
   $revision = $form_state['values']['actions']['views_revisions_revision'];
-  $log = $form_state['values']['actions']['views_revisions_log'];
+  if ($revision) {
+    $log = $form_state['values']['actions']['views_revisions_log'];
+    $ctools_export_object = ctools_export_load_object('views_view', 'names', array($form_state['view']->name));
+    $data = views_export_view($ctools_export_object[$form_state['view']->name]);
+    $vrvid = db_insert('views_revisions')->fields(
+      array(
+        'vid' => $form_state['view']->vid,
+        'uid' => $user->uid,
+        'created' => time(),
+        'log' => $log,
+        'data' => $data
+      )
+    )->execute();
+  }
+}
+
+/**
+ * Page callback function for the views revisions page.
+ */
+function views_revisions_page($name) {
+  return $name;
 }
 

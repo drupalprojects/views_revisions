@@ -46,9 +46,3 @@ function views_revisions_schema() {
   return $schema;
 }
 
-/**
- * Implements hook_uninstall().
- */
-/*function views_revisions_uninstall() {
-}*/
-

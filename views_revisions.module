@@ -2,7 +2,7 @@
 
 /**
  * @file
- * A module to provide revisions for Views.
+ * A module to provide revisions of Views.
  */
 
 /**
@@ -11,7 +11,9 @@
 function views_revisions_help($path, $arg) {
   switch ($path) {
     case 'admin/help#views_revisions':
-      return "<p>" . l('Views Revisions README', drupal_get_path('module', 'views_revisions'). '/README.txt')  . "</p>";
+      return "<p>" .
+        l('View README.txt', drupal_get_path('module', 'views_revisions'). '/README.txt')  .
+      "</p>";
       break;
   }
 }
@@ -43,7 +45,9 @@ function views_revisions_menu() {
  */
 function views_revisions_form_alter(&$form, &$form_state, $form_id) {
   if ($form_id == 'views_ui_edit_form') {
-    $form['#prefix'] .= '<div>' . l('Views Revisions', 'admin/structure/views/revisions/' . $form_state['view']->name) . '</div>';
+    $form['#prefix'] .= '<div>' .
+      l('Views Revisions', 'admin/structure/views/revisions/' . $form_state['view']->name) .
+    '</div>';
     $form['actions']['views_revisions_revision'] = array(
       '#type' => 'checkbox',
       '#title' => t('Create new revision'),
@@ -118,7 +122,7 @@ function views_revisions_page($name) {
     array("data" => t('User')),
     array("data" => t('Message')),
     array("data" => t('Created')),
-    array("data" => t('Operations'))
+    array("data" => t('Revision'))
   );
   $rows = array();
   foreach($revisions as $revision) {
@@ -171,6 +175,7 @@ function views_revisions_revision_page($vrvid) {
     l('Revisions', "admin/structure/views/revisions/{$revision->view_name}") . ' &raquo;' .
     '</p>' .
     $table .
+    '<p>' . l('Go to Import Page', 'admin/structure/views/import') . '</p>' .
     '<label for="views_revisions_data">' . t('Ctools export data before revision was made') . ':</label>' .
     theme('textarea', $textarea);
   return $html;

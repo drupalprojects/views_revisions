@@ -1,6 +1,20 @@
 <?php
 
 /**
+ * Implements hook_install().
+ */
+function views_revisions_install() {
+  drupal_install_schema('views_revisions');
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function views_revisions_uninstall() {
+  drupal_uninstall_schema('views_revisions');
+}
+
+/**
  * Implements hook_schema().
  */
 function views_revisions_schema() {

@@ -23,14 +23,14 @@ function views_revisions_help($path, $arg) {
  */
 function views_revisions_menu() {
   $items = array();
-  $items['admin/structure/views/revisions/%'] = array(
+  $items['admin/build/views/revisions/%'] = array(
     'type' => MENU_NORMAL_ITEM,
     'title' => 'Views Revisions',
     'page callback' => 'views_revisions_page',
     'page arguments' => array(4),
     'access arguments' => array('administer views')
   );
-  $items['admin/structure/views/revisions/revision/%'] = array(
+  $items['admin/build/views/revisions/revision/%'] = array(
     'type' => MENU_NORMAL_ITEM,
     'title' => 'Views Revision',
     'page callback' => 'views_revisions_revision_page',
@@ -44,22 +44,25 @@ function views_revisions_menu() {
  * Implements hook_form_alter().
  */
 function views_revisions_form_alter(&$form, &$form_state, $form_id) {
-  if ($form_id == 'views_ui_edit_form') {
+  if ($form_id == 'views_ui_edit_view_form') {
+    //dpm($form);
     $form['#prefix'] .= '<div>' .
-      l('Views Revisions', 'admin/structure/views/revisions/' . $form_state['view']->name) .
+      l('Views Revisions', 'admin/build/views/revisions/' . $form_state['view']->name) .
     '</div>';
-    $form['actions']['views_revisions_revision'] = array(
+    $form['buttons']['views_revisions_revision'] = array(
       '#type' => 'checkbox',
       '#title' => t('Create new revision'),
-      '#default_value' => 1
+      '#default_value' => 1,
+      '#weight' => -100
     );
-    $form['actions']['views_revisions_log'] = array(
+    $form['buttons']['views_revisions_log'] = array(
       '#type' => 'textarea',
       '#title' => t('Revision log message'),
       '#description' => t('Provide an explanation of the changes you are making. This will help other authors understand your motivations.'),
-      '#rows' => 3
+      '#rows' => 3,
+      '#weight' => -99
     );
-    array_unshift($form['actions']['save']['#submit'], 'views_revisions_form_submit');
+    array_unshift($form['buttons']['save']['#submit'], 'views_revisions_form_submit');
   }
   else if ($form_id == 'ctools_export_ui_delete_confirm_form') {
     $form['#submit'][] = 'views_revisions_delete';
@@ -71,12 +74,18 @@ function views_revisions_form_alter(&$form, &$form_state, $form_id) {
  */
 function views_revisions_form_submit($form, &$form_state) {
   global $user;
-  $revision = $form_state['values']['actions']['views_revisions_revision'];
+  $revision = $form_state['values']['views_revisions_revision'];
   if ($revision) {
-    $log = $form_state['values']['actions']['views_revisions_log'];
+    $log = $form_state['values']['views_revisions_log'];
+    dpm('about to go');
+    module_load_include('inc', 'ctools', 'includes/export');
     $ctools_export_object = ctools_export_load_object('views_view', 'names', array($form_state['view']->name));
-    $data = views_export_view($ctools_export_object[$form_state['view']->name]);
-    $vrvid = db_insert('views_revisions')->fields(
+    dpm($ctools_export_object);
+    /*$data = views_export_view($ctools_export_object[$form_state['view']->name]);
+    $sql = "INSERT INTO {views_revisions} (vid, uid, created, log, data) VALUES 
+            (%d, %d, %d, '%s', '%s')";
+    db_query($sql, $form_state['view']->vid, $user->uid, time(), $log, $data);*/
+    /*$vrvid = db_insert('views_revisions')->fields(
       array(
         'vid' => $form_state['view']->vid,
         'uid' => $user->uid,
@@ -84,7 +93,7 @@ function views_revisions_form_submit($form, &$form_state) {
         'log' => $log,
         'data' => $data
       )
-    )->execute();
+    )->execute();*/
   }
 }
 
@@ -102,22 +111,17 @@ function views_revisions_delete($form, &$form_state) {
  * Page callback function for the views revisions page.
  */
 function views_revisions_page($name) {
-  $html = "<h2>$name</h2><p>" . l('Go Back to View', "admin/structure/views/view/$name") . " &raquo;</p>";
-  $result = db_query("SELECT vid FROM {views_view} WHERE name = :name", array(':name' => $name))->fetch();
-  if (!$result) {
+  $html = "<h2>$name</h2><p>" . l('Go Back to View', "admin/build/views/edit/$name") . " &raquo;</p>";
+  $vid = db_result(db_query("SELECT vid FROM {views_view} WHERE name = '%s'", $name));
+  if (!$vid) {
     $html .= t('Failed to load view!');
     return $html;
   }
-  $vid = $result->vid;
   $revisions = db_query("SELECT vr.vrvid, vr.vid, vr.uid, vr.created, vr.log, u.name
     FROM {views_revisions} vr
     LEFT OUTER JOIN {users} u ON vr.uid = u.uid
-    WHERE vr.vid = :vid
-    ORDER BY vr.created DESC", array(':vid' => $vid))->fetchAll();
-  if (sizeof($revisions) == 0) {
-    $html .= t('There are no revisions for this view.');
-    return $html;
-  }
+    WHERE vr.vid = %d
+    ORDER BY vr.created DESC", $vid);
   $header = array(
     array("data" => t('User')),
     array("data" => t('Message')),
@@ -125,16 +129,22 @@ function views_revisions_page($name) {
     array("data" => t('Revision'))
   );
   $rows = array();
-  foreach($revisions as $revision) {
+  $revision_count == 0;
+  while ($revision = db_fetch_object($revisions)) {
     $row = array(
       l($revision->name, "user/$revision->uid"),
       $revision->log,
       format_date($revision->created, 'custom', 'Y-m-d H:i:s'),
-      l('View', "admin/structure/views/revisions/revision/$revision->vrvid")
+      l('View', "admin/build/views/revisions/revision/$revision->vrvid")
     );
     $rows[] = $row;
+    $revision_count++;
   }
-  $html .= theme('table', array('header' => $header, 'rows' => $rows));
+  if ($revision_count == 0) {
+    $html .= t('There are no revisions for this view.');
+    return $html;
+  }
+  $html .= theme('table', $header, $rows);
   return $html;
 }
 
@@ -160,7 +170,7 @@ function views_revisions_revision_page($vrvid) {
       format_date($revision->created, 'custom', 'Y-m-d H:i:s')
     )
   );
-  $table = theme('table', array('header' => $header, 'rows' => $rows));
+  $table = theme('table', $header, $rows);
   $textarea = array(
     'element' => array(
       '#id' => 'views_revisions_data',
@@ -171,11 +181,11 @@ function views_revisions_revision_page($vrvid) {
   );
   $html .= "<h2>{$revision->view_name}</h2>" .
     '<p>' .
-    l('View', "admin/structure/views/view/{$revision->view_name}") . ' &raquo; ' .
-    l('Revisions', "admin/structure/views/revisions/{$revision->view_name}") . ' &raquo;' .
+    l('View', "admin/build/views/view/{$revision->view_name}") . ' &raquo; ' .
+    l('Revisions', "admin/build/views/revisions/{$revision->view_name}") . ' &raquo;' .
     '</p>' .
     $table .
-    '<p>' . l('Go to Import Page', 'admin/structure/views/import') . '</p>' .
+    '<p>' . l('Go to Import Page', 'admin/build/views/import') . '</p>' .
     '<label for="views_revisions_data">' . t('Ctools export data before revision was made') . ':</label>' .
     theme('textarea', $textarea);
   return $html;

@@ -1,6 +1,6 @@
 name = Views Revisions
 description = Enable revisions on Views.
-core = 7.x
+core = 6.x
 package = Views
 dependencies[] = views
 

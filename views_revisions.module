@@ -33,8 +33,8 @@ function views_revisions_menu() {
   $items['admin/build/views/revisions/revision/%'] = array(
     'type' => MENU_NORMAL_ITEM,
     'title' => 'Views Revision',
-    'page callback' => 'views_revisions_revision_page',
-    'page arguments' => array(5),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('views_revisions_revision_page', 5),
     'access arguments' => array('administer views')
   );
   return $items;
@@ -44,8 +44,7 @@ function views_revisions_menu() {
  * Implements hook_form_alter().
  */
 function views_revisions_form_alter(&$form, &$form_state, $form_id) {
-  if ($form_id == 'views_ui_edit_view_form') {
-    //dpm($form);
+  if ($form_id == 'views_ui_edit_view_form' && $form_state['view']->vid != 'new') {
     $form['#prefix'] .= '<div>' .
       l('Views Revisions', 'admin/build/views/revisions/' . $form_state['view']->name) .
     '</div>';
@@ -64,7 +63,12 @@ function views_revisions_form_alter(&$form, &$form_state, $form_id) {
     );
     array_unshift($form['buttons']['save']['#submit'], 'views_revisions_form_submit');
   }
-  else if ($form_id == 'ctools_export_ui_delete_confirm_form') {
+  else if ($form_id == 'views_ui_delete_confirm') {
+    $form['views_revisions_save_history'] = array(
+      '#title' => t('Save the Views Revions History'),
+      '#type' => 'checkbox',
+      '#default_value' => 1
+    );
     $form['#submit'][] = 'views_revisions_delete';
   }
 }
@@ -77,23 +81,10 @@ function views_revisions_form_submit($form, &$form_state) {
   $revision = $form_state['values']['views_revisions_revision'];
   if ($revision) {
     $log = $form_state['values']['views_revisions_log'];
-    dpm('about to go');
-    module_load_include('inc', 'ctools', 'includes/export');
-    $ctools_export_object = ctools_export_load_object('views_view', 'names', array($form_state['view']->name));
-    dpm($ctools_export_object);
-    /*$data = views_export_view($ctools_export_object[$form_state['view']->name]);
+    $data = $form_state['view']->export();
     $sql = "INSERT INTO {views_revisions} (vid, uid, created, log, data) VALUES 
             (%d, %d, %d, '%s', '%s')";
-    db_query($sql, $form_state['view']->vid, $user->uid, time(), $log, $data);*/
-    /*$vrvid = db_insert('views_revisions')->fields(
-      array(
-        'vid' => $form_state['view']->vid,
-        'uid' => $user->uid,
-        'created' => time(),
-        'log' => $log,
-        'data' => $data
-      )
-    )->execute();*/
+    db_query($sql, $form_state['view']->vid, $user->uid, time(), $log, $data);
   }
 }
 
@@ -101,8 +92,9 @@ function views_revisions_form_submit($form, &$form_state) {
  * Submission handler for the ctools delete confirmation form.
  */
 function views_revisions_delete($form, &$form_state) {
-  if ($form_state['plugin']['schema'] == 'views_view') {
-    $vid = $form_state['item']->vid;
+  dpm($form_state['values']);
+  if (!$form_state['values']['views_revisions_save_history']) {
+    $vid = $form_state['view']->vid;
     db_query("DELETE FROM {views_revisions} WHERE vid = :vid", array(':vid' => $vid));
   }
 }
@@ -151,13 +143,15 @@ function views_revisions_page($name) {
 /**
  * Page callback function for the views revisions revision page.
  */
-function views_revisions_revision_page($vrvid) {
+function views_revisions_revision_page($form_state, $vrvid) {
+  $form = array();
   $html = '';
-  $revision = db_query("SELECT vr.vrvid, vr.vid, vr.uid, vr.created, vr.log, vr.data, u.name, vv.name as view_name
+  $result = db_query("SELECT vr.vrvid, vr.vid, vr.uid, vr.created, vr.log, vr.data, u.name, vv.name as view_name
     FROM {views_revisions} vr
     LEFT OUTER JOIN {users} u ON vr.uid = u.uid
     INNER JOIN {views_view} vv ON vr.vid = vv.vid
-    WHERE vrvid = :vrvid", array('vrvid' => $vrvid))->fetch();
+    WHERE vrvid = %d", $vrvid);
+  $revision = db_fetch_object($result);
   $header = array(
     array("data" => t('User')),
     array("data" => t('Message')),
@@ -171,23 +165,20 @@ function views_revisions_revision_page($vrvid) {
     )
   );
   $table = theme('table', $header, $rows);
-  $textarea = array(
-    'element' => array(
-      '#id' => 'views_revisions_data',
-      '#value' => $revision->data,
-      '#rows' => 32,
-      '#attributes' => array('onclick' => 'javascript:this.select();')
-    )
+  $form['export_data'] =  array(
+    '#title' => t('Export data before revision was made'),
+    '#type' => 'textarea',
+    '#value' => $revision->data,
+    '#rows' => 32
   );
   $html .= "<h2>{$revision->view_name}</h2>" .
     '<p>' .
-    l('View', "admin/build/views/view/{$revision->view_name}") . ' &raquo; ' .
+    l('View', "admin/build/views/edit/{$revision->view_name}") . ' &raquo; ' .
     l('Revisions', "admin/build/views/revisions/{$revision->view_name}") . ' &raquo;' .
     '</p>' .
     $table .
-    '<p>' . l('Go to Import Page', 'admin/build/views/import') . '</p>' .
-    '<label for="views_revisions_data">' . t('Ctools export data before revision was made') . ':</label>' .
-    theme('textarea', $textarea);
-  return $html;
+    '<p>' . l('Go to Import Page', 'admin/build/views/import') . '</p>';
+  $form['#prefix'] = $html;
+  return $form;
 }
 

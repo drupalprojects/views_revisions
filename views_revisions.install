@@ -37,12 +37,29 @@ function views_revisions_schema() {
       'data' => array(
         'description' => 'The export data of the view when the revision was created.', 
         'type' => 'text', 
-        'size' => 'normal',
+        'size' => 'medium',
         'not null' => TRUE,
       ),
     ),
     'primary key' => array('vrvid'),
   );
   return $schema;
+}
+
+/**
+ * Change the data column's size from normal to medium.
+ */
+function views_revisions_update_7100(&$sandbox) {
+  db_change_field(
+    'views_revisions',
+    'data',
+    'data',
+    array(
+      'type' => 'text', 
+      'size' => 'medium',
+      'not null' => TRUE
+    )
+  );
+  return t('Updated the "Views Revisions" module.');
 }
 

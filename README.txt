@@ -1,4 +1,7 @@
-https://drupal.org/project/views_revisions
+Compatability note, this module is designed to work with the 7.x-3.x version of
+the Views module.
+
+  https://drupal.org/project/views_revisions
 
 Once the module is enabled, a checkbox and textarea will be provided on the
 Views UI for creating a revision when editing a View. For example:
@@ -19,12 +22,17 @@ the Views UI to see a list of revisions for that View, for example:
   Front Page Views UI:            admin/structure/views/view/frontpage/edit
   Front Page Views Revisions:     admin/structure/views/revisions/frontpage
 
-Click the 'View' link in the revision's table to see the ctools export data
+Click the 'View' link in the revisions table to see the ctools export data
 for the View. To revert a view, copy the ctools export data from the revision
 and then go to:
 
   admin/structure/views/import
 
-Compatability note, this module is designed to work with the 7.x-3.x version of
-the Views module.
+Check the box to 'Replace an existing view if one exists with the same name' and
+then hit the 'Import' button. This will bring you back to the Views UI form with
+the reverted settings ready for you to save. At this point, it is recommended to
+create another revision while saving, that way you can save a backup copy of the
+changes you are about to get rid of.
+
+Finally, hit the 'Save' button to bring the revised copy of the view back.
 

@@ -44,7 +44,7 @@ function views_revisions_menu() {
  * Implements hook_form_alter().
  */
 function views_revisions_form_alter(&$form, &$form_state, $form_id) {
-  if ($form_id == 'views_ui_edit_form') {
+  if ($form_id == 'views_ui_edit_form' && $form_state['view']->vid != 'new') {
     $form['#prefix'] .= '<div>' .
       l('Views Revisions', 'admin/structure/views/revisions/' . $form_state['view']->name) .
     '</div>';

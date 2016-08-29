@@ -181,3 +181,14 @@ function views_revisions_revision_page($vrvid) {
   return $html;
 }
 
+/**
+ * Implements hook_views_ui_display_top_links_alter().
+ *
+ * Add a views revision link to the views ui top links.
+ */
+function views_revisions_views_ui_display_top_links_alter(&$links, $view, $display_id) {
+  $links['revisions'] = array(
+    'title' => t('view revisions'),
+    'href' => 'admin/structure/views/revisions/' . $view->name,
+  );
+}
